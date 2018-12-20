@@ -14,7 +14,7 @@
 import os
 import glob
 import shutil
-import sys
+import sys, subprocess
 #import about
 
 from distutils.core import setup
@@ -47,59 +47,35 @@ def update_messages():
     # Remove temporary directory
     os.system("rm -rf .tmp")
 
-def makeDirs(dir):
-    try:
-        os.makedirs(dir)
-    except OSError:
-        pass
-
 def have_gettext():
     return subprocess.getoutput("pyuic5 --help").find("--gettext") > -1
     
 class Build(build):
     def run(self):
         os.system("rm -rf build")
-        os.system("mkdir -p build/fusionlogic/packagewizard")
+        os.system("mkdir -p build/lib/fusionlogic")
         print ("Copying PYs Src...")
-        os.system("cp src/*.py build/fusionlogic/packagewizard")
+        os.system("cp src/*.py build/lib/fusionlogic")
         print ("Generating UIs...")
         for filename in glob.glob1("modules_uic", "*.ui"):
             if have_gettext():
-                os.system("pyuic5 -g -o build/fusionlogic/packagewizard/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
+                os.system("pyuic5 -g -o build/lib/fusionlogic/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
             else:
-                os.system("pyuic5 -o build/fusionlogic/packagewizard/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
+                os.system("pyuic5 -o build/lib/fusionlogic/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
         print ("Generating RCs for build...")
         for filename in glob.glob1("./", "*.qrc"):
             os.system("pyrcc5 %s -o build/%s_rc.py" % (filename, filename.split(".")[0]))
             print ("Generating RCs for tests...")
             #os.system("pyrcc5 %s -o test/%s_rc.py" % (filename, filename.split(".")[0]))
-        for filename in glob.glob1("./", "*.in"):
-            os.system("cat %s > build/%s.py" % (filename, filename.split(".")[0]))
+        for filename in glob.glob1("./", "*.py"):
+            if filename not in ["setup.py"]:
+                os.system("cat %s > build/%s" % (filename, filename))
+        os.system("""echo 'name="fusionlogic"' >build/lib/fusionlogic/__init__.py""")
 
 
 class Install(install):
     def run(self):
-        os.system("./setup.py build")
-        if self.root:
-            kde_dir = "%s/usr" % self.root
-        bin_dir = os.path.join(kde_dir, "bin")
-        locale_dir = os.path.join(kde_dir, "share/locale")
-        autostart_dir = os.path.join(kde_dir, "share/autostart")
-        project_dir = os.path.join(kde_dir, "share/apps", about.appName)
-        # Make directories
-        print ("Making directories...")
-        sys.exit()
-        makeDirs(bin_dir)
-        #makeDirs(locale_dir)
-        makeDirs(autostart_dir)
-        makeDirs(project_dir)
-        # Install desktop files
-        print ("Installing desktop files...")
-        for filename in glob.glob1("data", "*.desktop"):
-            shutil.copy("data/%s" % filename, autostart_dir)
-        # Install codes
-        print ("Installing codes...")
-        os.system("cp -R build/* %s/" % project_dir)
+        install.run(self)
         # Install locales
         print ("Installing locales...")
         for filename in glob.glob1("po", "*.po"):
@@ -110,39 +86,28 @@ class Install(install):
             except OSError:
                 pass
             shutil.copy("po/%s.mo" % lang, os.path.join(locale_dir, "%s/LC_MESSAGES" % lang, "%s.mo" % about.catalog))
-        # Rename
-        print ("Renaming application.py...")
-        #shutil.move(os.path.join(project_dir, "application.py"), os.path.join(project_dir, "%s.py" % about.appName))
-        # Modes
-        print ("Changing file modes...")
-        os.chmod(os.path.join(project_dir, "%s.py" % about.appName), "0755")
-        # Symlink
-        try:
-            if self.root:
-                os.symlink(os.path.join(project_dir.replace(self.root, ""), "%s.py" % about.appName), os.path.join(bin_dir, about.appName))
-            else:
-                os.symlink(os.path.join(project_dir, "%s.py" % about.appName), os.path.join(bin_dir, about.appName))
-        except OSError:
-            pass
 
 
 if "update_messages" in sys.argv:
     update_messages()
     sys.exit(0)
 
+lcs = subprocess.getoutput("find build/locale").split()
+print (lcs)
+
 setup(
-    name="fusionlogic-packagewizard",
+    name="fusionlogic-common",
 
     version="0.0.1",
 
-    description="The FusionLogic-PackageWizard is a PyQt5 package installer.",
+    description="The FusionLogic common library",
     long_description = """
-    The FusionLogic-PackageWizard is a PyQt5 based package installer via PackageKit.
+    The FusionLogic...
     Project idea and design: Charles K. Barcza
     Maintainer: Miklos Horvath 
     """,
     
-    url="https://github.com/blackPantherOS/package-wizard",
+    url="https://github.com/blackPantherOS/fusionlogic-common",
 
     author="Charles Barcza, Miklos Horvath",
     maintainer="Miklos Horvath <hmiki@blackpantheros.eu>",
@@ -171,11 +136,11 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
 
-    packages=["packagewizard"],
-#    scripts=["bin/package-wizard"],
-    install_requires = ["argparse", "configparser"],
+    package_dir={"fusionlogic":"build/lib/fusionlogic"},
+    packages=["fusionlogic"],
+    data_files=[("share/locale", lcs)],
     cmdclass = {
             'build': Build,
             'install': Install,
-                }
+    }
 )
