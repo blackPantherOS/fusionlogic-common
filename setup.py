@@ -50,13 +50,15 @@ def update_messages():
     # Update PO files
     for item in os.listdir("po"):
         if item.endswith(".po"):
-            os.system("msgmerge -q -o .tmp/temp.po po/%s po/%s.pot" % (item, about.catalog))
+            os.system("msgmerge -q -o .tmp/temp.po po/%s po/%s.pot" % (item, pkgname))
             os.system("cp .tmp/temp.po po/%s" % item)
     # Remove temporary directory
     os.system("rm -rf .tmp")
 
 class Build(build):
     def run(self):
+        pkgname="fusionlogic-common"
+        locale_dir = "build/locale"
         os.system("rm -rf build")
         os.system("mkdir -p build/lib/fusionlogic")
         print ("Copying PYs Src...")
@@ -68,6 +70,18 @@ class Build(build):
             else:
                 os.system("pyuic5 -o build/lib/fusionlogic/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
         print ("Generating RCs for build...")
+
+        print ("Build locales...")
+        for filename in glob.glob1("po", "*.po"):
+            lang = filename.rsplit(".", 1)[0]
+            os.system("msgfmt po/%s.po -o po/%s.mo" % (lang, lang))
+            try:
+                os.makedirs(os.path.join(locale_dir, "%s/LC_MESSAGES" % lang))
+            except OSError:
+                pass
+            shutil.copy("po/%s.mo" % lang, os.path.join(locale_dir, "%s/LC_MESSAGES" % lang, "%s.mo" % pkgname))
+
+
         for filename in glob.glob1("./", "*.qrc"):
             os.system("pyrcc5 %s -o build/%s_rc.py" % (filename, filename.split(".")[0]))
             print ("Generating RCs for tests...")
@@ -77,28 +91,14 @@ class Build(build):
                 os.system("cat %s > build/%s" % (filename, filename))
         os.system("""echo 'name="fusionlogic"' >build/lib/fusionlogic/__init__.py""")
 
-
 class Install(install):
     def run(self):
         install.run(self)
-        # Install locales
-        print ("Installing locales...")
-        for filename in glob.glob1("po", "*.po"):
-            lang = filename.rsplit(".", 1)[0]
-            os.system("msgfmt po/%s.po -o po/%s.mo" % (lang, lang))
-            try:
-                os.makedirs(os.path.join(locale_dir, "%s/LC_MESSAGES" % lang))
-            except OSError:
-                pass
-            shutil.copy("po/%s.mo" % lang, os.path.join(locale_dir, "%s/LC_MESSAGES" % lang, "%s.mo" % about.catalog))
 
 
 if "update_messages" in sys.argv:
     update_messages()
     sys.exit(0)
-
-lcs = subprocess.getoutput("find build/locale").split()
-print (lcs)
 
 setup(
     name="fusionlogic-common",
@@ -143,7 +143,7 @@ setup(
 
     package_dir={"fusionlogic":"build/lib/fusionlogic"},
     packages=["fusionlogic"],
-    data_files=[("share/locale", lcs)],
+    data_files  = [('/'.join(['usr']+e.split('/')[1:-1]), [e]) for e in subprocess.getoutput("find build/locale").split() if ".mo" in e],
     cmdclass = {
             'build': Build,
             'install': Install,
