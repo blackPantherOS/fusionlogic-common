@@ -27,18 +27,26 @@ import subprocess
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+def have_gettext():
+    return subprocess.getoutput("pyuic5 --help").find("--gettext") > -1    
+
 def update_messages():
     # Create empty directory
+    pkgname="fusionlogic-common"
     os.system("rm -rf .tmp")
     os.makedirs(".tmp")
     # Collect UI files
     for filename in glob.glob1("modules_uic", "*.ui"):
-        os.system("pyuic5 -o .tmp/ui_%s.py modules_uic/%s" % (filename.split(".")[0], filename))
+        if have_gettext():
+            os.system("pyuic5 -g -o .tmp/ui_%s.py modules_uic/%s" % (filename.split(".")[0], filename))
+        else:
+            os.system("pyuic5 -o .tmp/ui_%s.py modules_uic/%s" % (filename.split(".")[0], filename))
     # Collect Python files
     for filename in glob.glob1("modules_uic", "*.py"):
         shutil.copy("modules_uic/%s" % filename, ".tmp")
     # Generate POT file
-    os.system("xgettext --default-domain=%s --keyword=_ --keyword=i18n --keyword=ki18n -o po/%s.pot .tmp/*" % (about.catalog, about.catalog))
+    os.system('mkdir -p po')
+    os.system("xgettext --default-domain=%s --keyword=_ --keyword=i18n --keyword=ki18n -o po/%s.pot src/*.py .tmp/*.py" % (pkgname,pkgname))
     # Update PO files
     for item in os.listdir("po"):
         if item.endswith(".po"):
@@ -47,9 +55,6 @@ def update_messages():
     # Remove temporary directory
     os.system("rm -rf .tmp")
 
-def have_gettext():
-    return subprocess.getoutput("pyuic5 --help").find("--gettext") > -1
-    
 class Build(build):
     def run(self):
         os.system("rm -rf build")
