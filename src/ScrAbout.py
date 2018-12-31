@@ -10,8 +10,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 import subprocess, sys
-from fusionlogic.packagewizard.ScreenWidget import ScreenWidget
-from fusionlogic.packagewizard.aboutWidget import Ui_aboutWidget
+from fusionlogic.ScreenWidget import ScreenWidget
+from fusionlogic.aboutWidget import Ui_aboutWidget
 
 class Widget(QWidget, ScreenWidget):
     title = _("About")

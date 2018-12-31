@@ -83,8 +83,9 @@ class Build(build):
 
 
         for filename in glob.glob1("./", "*.qrc"):
-            os.system("pyrcc5 %s -o build/%s_rc.py" % (filename, filename.split(".")[0]))
-            print ("Generating RCs for tests...")
+#            os.system("pyrcc5 %s -o build/%s_rc.py" % (filename, filename.split(".")[0]))
+            os.system("pyrcc5 %s -o build/lib/fusionlogic/%s_rc.py" % (filename, filename.split(".")[0]))
+#            print ("Generating RCs for tests...")
             #os.system("pyrcc5 %s -o test/%s_rc.py" % (filename, filename.split(".")[0]))
         for filename in glob.glob1("./", "*.py"):
             if filename not in ["setup.py"]:
