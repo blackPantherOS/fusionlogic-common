@@ -32,7 +32,7 @@ def have_gettext():
 
 def update_messages():
     # Create empty directory
-    pkgname="fusionlogic-common"
+    pkgname="fusionlogic"
     os.system("rm -rf .tmp")
     os.makedirs(".tmp")
     # Collect UI files
@@ -48,17 +48,17 @@ def update_messages():
     os.system('mkdir -p po')
     os.system("xgettext --default-domain=%s --keyword=_ --keyword=i18n --keyword=ki18n -o po/%s.pot src/*.py .tmp/*.py" % (pkgname,pkgname))
     # Update PO files
-    for item in os.listdir("po"):
-        if item.endswith(".po"):
-            os.system("msgmerge -q -o .tmp/temp.po po/%s po/%s.pot" % (item, pkgname))
-            os.system("cp .tmp/temp.po po/%s" % item)
+#    for item in os.listdir("po"):
+#        if item.endswith(".po"):
+#            os.system("msgmerge -q -o .tmp/temp.po po/%s po/%s.pot" % (item, pkgname))
+#            os.system("cp .tmp/temp.po po/%s" % item)
     # Remove temporary directory
     os.system("rm -rf .tmp")
 
 class Build(build):
     def run(self):
-        pkgname="fusionlogic-common"
-        locale_dir = "build/locale"
+#        pkgname="fusionlogic-common"
+#        locale_dir = "build/locale"
         os.system("rm -rf build")
         os.system("mkdir -p build/lib/fusionlogic")
         print ("Copying PYs Src...")
@@ -69,18 +69,20 @@ class Build(build):
                 os.system("pyuic5 -g -o build/lib/fusionlogic/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
             else:
                 os.system("pyuic5 -o build/lib/fusionlogic/%s.py modules_uic/%s" % (filename.split(".")[0], filename))
-        print ("Generating RCs for build...")
 
         print ("Build locales...")
-        for filename in glob.glob1("po", "*.po"):
-            lang = filename.rsplit(".", 1)[0]
-            os.system("msgfmt po/%s.po -o po/%s.mo" % (lang, lang))
-            try:
-                os.makedirs(os.path.join(locale_dir, "%s/LC_MESSAGES" % lang))
-            except OSError:
-                pass
-            shutil.copy("po/%s.mo" % lang, os.path.join(locale_dir, "%s/LC_MESSAGES" % lang, "%s.mo" % pkgname))
+        os.system("mkdir -p build/lib/fusionlogic/locale")
+        os.system("cp po/*.pot build/lib/fusionlogic/locale/")
+#        for filename in glob.glob1("po", "*.po"):
+#            lang = filename.rsplit(".", 1)[0]
+#            os.system("msgfmt po/%s.po -o po/%s.mo" % (lang, lang))
+#            try:
+#                os.makedirs(os.path.join(locale_dir, "%s/LC_MESSAGES" % lang))
+#            except OSError:
+#                pass
+#            shutil.copy("po/%s.mo" % lang, os.path.join(locale_dir, "%s/LC_MESSAGES" % lang, "%s.mo" % pkgname))
 
+        print ("Generating RCs for build...")
 
         for filename in glob.glob1("./", "*.qrc"):
 #            os.system("pyrcc5 %s -o build/%s_rc.py" % (filename, filename.split(".")[0]))
